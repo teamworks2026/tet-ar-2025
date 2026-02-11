@@ -1,158 +1,109 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hộp Quà Bí Mật AR</title>
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://unpkg.com/aframe-particle-system-component@1.0.x/dist/aframe-particle-system-component.min.js"></script>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:system-ui}
+    #hud{position:fixed;left:0;right:0;top:12px;text-align:center;z-index:999;color:#fff;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+    #panel{
+      position:fixed;left:50%;bottom:10%;transform:translateX(-50%);
+      z-index:999;display:none;background:rgba(0,0,0,.55);color:#fff;
+      padding:14px 16px;border-radius:18px;backdrop-filter:blur(6px);
+      width:min(92vw,420px);text-align:center
+    }
+    #btn{display:none;margin-top:10px;padding:14px 18px;border-radius:999px;border:2px solid #ffd24a;
+      background:#e0182d;color:#fff;font-weight:900;font-size:18px;width:100%}
+  </style>
+</head>
 
-    <style>
-      /* Nút Nhận Lì Xì (ẩn lúc đầu) */
-      #lixi-btn {
-        display: none;
-        position: fixed;
-        bottom: 10%;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 15px 30px;
-        background: #d41414;
-        color: #fff;
-        font-size: 20px;
-        font-weight: bold;
-        border: 2px solid #ffcc00;
-        border-radius: 50px;
-        z-index: 999;
-        cursor: pointer;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-        animation: pulse 1.5s infinite;
-      }
-      
-      @keyframes pulse {
-        0% { transform: translateX(-50%) scale(1); }
-        50% { transform: translateX(-50%) scale(1.1); }
-        100% { transform: translateX(-50%) scale(1); }
-      }
+<body>
+  <div id="hud">Hãy quét vào tấm thiệp!</div>
 
-      /* Màn hình hướng dẫn scan */
-      #scanning-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: white;
-        background: rgba(0,0,0,0.6);
-        z-index: 998;
-        pointer-events: none;
-        font-family: Arial, sans-serif;
-      }
-    </style>
-  </head>
-  <body>
-    
-    <div id="scanning-overlay">Hãy quét vào tấm thiệp Tết!</div>
-    <button id="lixi-btn" onclick="openLixi()">🧧 NHẬN LÌ XÌ NGAY</button>
+  <div id="panel">
+    <div id="msg" style="font-size:18px;font-weight:900"></div>
+    <button id="btn">🧧 NHẬN LÌ XÌ</button>
+  </div>
 
-    <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; filterMinCF:0.0001; filterBeta: 0.001;" 
-      color-space="sRGB" 
-      renderer="colorManagement: true, physicallyCorrectLights" 
-      vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
+  <a-scene
+    mindar-image="imageTargetSrc: ./targets.mind; uiScanning: yes; uiError: yes;"
+    renderer="colorManagement:true, physicallyCorrectLights:true"
+    vr-mode-ui="enabled:false"
+    device-orientation-permission-ui="enabled:false"
+    embedded
+  >
+    <a-assets>
+      <a-asset-item id="horseModel" src="./horse.glb"></a-asset-item>
+      <a-asset-item id="giftModel"  src="./gift.glb"></a-asset-item>
+    </a-assets>
 
-      <a-assets>
-        <a-asset-item id="gift-box-model" src="giftbox.glb"></a-asset-item>
-        <a-asset-item id="mascot-model" src="mascot.glb"></a-asset-item>
-      </a-assets>
+    <a-camera position="0 0 0" look-controls="enabled:false">
+      <a-entity cursor="fuse:false; rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
+    </a-camera>
 
-      <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="objects: .clickable"></a-camera>
+    <a-entity mindar-image-target="targetIndex:0" id="target">
+      <a-entity light="type: ambient; intensity: 1"></a-entity>
+      <a-entity light="type: directional; intensity: 0.9" position="1 2 1"></a-entity>
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        
-        <a-entity id="ar-content" position="0 0 0" scale="0.5 0.5 0.5"> <a-entity id="gift-box" 
-            gltf-model="#gift-box-model" 
-            position="0 0 0" 
-            class="clickable"
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear">
-          </a-entity>
-
-          <a-entity id="mascot" 
-            gltf-model="#mascot-model" 
-            position="0 0.5 0" 
-            scale="0 0 0" 
-            visible="false">
-          </a-entity>
-
-          <a-entity id="fireworks" 
-            position="0 1 0" 
-            particle-system="preset: dust; color: #ffcc00, #ff0000; particleCount: 500; size: 2" 
-            visible="false">
-          </a-entity>
-
-          <a-plane id="click-trigger" 
-             class="clickable"
-             position="0 0.2 0" 
-             height="1.5" width="1.5" 
-             rotation="-90 0 0" 
-             material="opacity: 0; transparent: true">
-          </a-plane>
-
-        </a-entity>
+      <a-entity id="horse" class="clickable"
+        gltf-model="#horseModel" position="0 0 0" scale="0.6 0.6 0.6"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 5000">
       </a-entity>
-    </a-scene>
 
-    <script>
-      const giftBox = document.querySelector('#gift-box');
-      const mascot = document.querySelector('#mascot');
-      const fireworks = document.querySelector('#fireworks');
-      const btn = document.querySelector('#lixi-btn');
-      const trigger = document.querySelector('#click-trigger');
-      const overlay = document.querySelector('#scanning-overlay');
+      <a-entity id="gift" class="clickable" visible="false"
+        gltf-model="#giftModel" position="0 0 0" scale="0.6 0.6 0.6"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 4500">
+      </a-entity>
+    </a-entity>
+  </a-scene>
 
-      // Sự kiện khi tìm thấy hình ảnh (Target found)
-      const target = document.querySelector('[mindar-image-target]');
-      target.addEventListener("targetFound", event => {
-        console.log("Target found");
-        overlay.style.display = 'none'; // Ẩn hướng dẫn scan
-      });
+  <script>
+    const hud = document.getElementById('hud');
+    const panel = document.getElementById('panel');
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('btn');
 
-      target.addEventListener("targetLost", event => {
-        console.log("Target lost");
-        overlay.style.display = 'flex'; // Hiện lại hướng dẫn scan
-      });
+    const target = document.getElementById('target');
+    const horse = document.getElementById('horse');
+    const gift  = document.getElementById('gift');
 
-      // Xử lý khi chạm vào hộp quà (thông qua lớp tàng hình hoặc trực tiếp)
-      // Hàm xử lý chung
-      const onBoxClick = () => {
-        if(giftBox.getAttribute('visible') === false) return; // Đã nổ rồi thì thôi
+    let state = 'HORSE';
 
-        // 1. Giấu hộp quà
-        giftBox.setAttribute('visible', 'false');
+    target.addEventListener('targetFound', () => {
+      hud.textContent = (state === 'HORSE') ? 'Chạm vào con ngựa!' : 'Chạm vào hộp quà!';
+    });
+    target.addEventListener('targetLost', () => {
+      hud.textContent = 'Hãy quét vào tấm thiệp!';
+      panel.style.display = 'none';
+    });
 
-        // 2. Hiện linh vật và scale lớn lên (hiệu ứng nảy)
-        mascot.setAttribute('visible', 'true');
-        mascot.setAttribute('animation', 'property: scale; to: 1 1 1; dur: 1000; easing: easeOutElastic');
+    horse.addEventListener('click', () => {
+      if (state !== 'HORSE') return;
+      state = 'GIFT';
+      hud.textContent = 'Chạm vào hộp quà!';
+      horse.setAttribute('visible', 'false');
+      gift.setAttribute('visible', 'true');
+    });
 
-        // 3. Bắn pháo hoa
-        fireworks.setAttribute('visible', 'true');
+    gift.addEventListener('click', () => {
+      if (state !== 'GIFT') return;
+      state = 'DONE';
+      hud.textContent = 'Chúc mừng năm mới!';
+      panel.style.display = 'block';
 
-        // 4. Hiện nút nhận lì xì sau 1 giây
-        setTimeout(() => {
-            btn.style.display = 'block';
-        }, 1000);
-      };
+      // demo random tại chỗ (GitHub Pages chỉ làm được kiểu này)
+      const values = [10000,20000,50000,100000];
+      const amount = values[Math.floor(Math.random()*values.length)];
 
-      // Gán sự kiện click
-      trigger.addEventListener('click', onBoxClick);
-      giftBox.addEventListener('click', onBoxClick);
+      msg.textContent = `Bạn nhận được: ${formatVND(amount)}đ`;
+      btn.style.display = 'block';
+      btn.onclick = () => alert('Demo: Bạn có thể chuyển sang trang nhận/QR tại đây');
+    });
 
-      // Hàm xử lý nút nhận tiền
-      function openLixi() {
-        // Thay link Momo hoặc Zalopay của bạn vào đây
-        window.location.href = 'https://momo.vn/chuyen-tien/...'; 
-        // Hoặc alert("Chúc mừng năm mới!");
-      }
-    </script>
-  </body>
+    function formatVND(n){
+      return (n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+    }
+  </script>
+</body>
 </html>
